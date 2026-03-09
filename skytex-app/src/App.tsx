@@ -1,35 +1,121 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "./lib/supabase";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [session, setSession] = useState<Session | null>(null);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    const loadSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setSession(session);
+    };
+
+    loadSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignUp = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage(`新規登録エラー: ${error.message}`);
+      return;
+    }
+
+    setMessage("新規登録しました。メール確認が必要な場合は受信箱をご確認ください。");
+  };
+
+  const handleLogin = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      setMessage(`ログインエラー: ${error.message}`);
+      return;
+    }
+
+    setMessage("ログインしました。");
+  };
+
+  const handleLogout = async () => {
+    setMessage("");
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      setMessage(`ログアウトエラー: ${error.message}`);
+      return;
+    }
+
+    setMessage("ログアウトしました。");
+  };
+
+  if (session) {
+    return (
+      <div style={{ padding: "24px", maxWidth: "480px", margin: "0 auto" }}>
+        <h1>SkyTex App</h1>
+        <p>ログイン済みです。</p>
+        <p>メールアドレス: {session.user.email}</p>
+
+        <button onClick={handleLogout}>ログアウト</button>
+
+        {message && <p style={{ marginTop: "16px" }}>{message}</p>}
+      </div>
+    );
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={{ padding: "24px", maxWidth: "480px", margin: "0 auto" }}>
+      <h1>SkyTex App</h1>
+      <p>ログイン / 新規登録</p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        <input
+          type="email"
+          placeholder="メールアドレス"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <input
+          type="password"
+          placeholder="パスワード"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <button onClick={handleLogin}>ログイン</button>
+        <button onClick={handleSignUp}>新規登録</button>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+
+      {message && <p style={{ marginTop: "16px" }}>{message}</p>}
+    </div>
+  );
 }
 
-export default App
+export default App;
