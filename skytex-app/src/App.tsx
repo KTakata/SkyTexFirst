@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabase";
+import { PlotList } from "./components/PlotList";
 
 function App() {
   const [email, setEmail] = useState("");
@@ -62,31 +63,8 @@ function App() {
     setMessage("ログインしました。");
   };
 
-  const handleLogout = async () => {
-    setMessage("");
-
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      setMessage(`ログアウトエラー: ${error.message}`);
-      return;
-    }
-
-    setMessage("ログアウトしました。");
-  };
-
   if (session) {
-    return (
-      <div style={{ padding: "24px", maxWidth: "480px", margin: "0 auto" }}>
-        <h1>SkyTex App</h1>
-        <p>ログイン済みです。</p>
-        <p>メールアドレス: {session.user.email}</p>
-
-        <button onClick={handleLogout}>ログアウト</button>
-
-        {message && <p style={{ marginTop: "16px" }}>{message}</p>}
-      </div>
-    );
+    return <PlotList session={session} />;
   }
 
   return (
